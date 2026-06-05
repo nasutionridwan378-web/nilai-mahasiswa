@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikasi Pengelolaan Nilai Mahasiswa</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#2c3e50;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
+
+input{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    color:white;
+}
+
+.btn-simpan{background:#27ae60;}
+.btn-ranking{background:#2980b9;}
+.btn-export{background:#8e44ad;}
+.btn-hapus{background:#e74c3c;}
+.btn-cari{background:#f39c12;}
+
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+}
+
+.box{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.box h2{
+    margin-top:10px;
+    color:#3498db;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#3498db;
+    color:white;
+}
+
+.gradeA{color:green;font-weight:bold;}
+.gradeB{color:blue;font-weight:bold;}
+.gradeC{color:orange;font-weight:bold;}
+.gradeD{color:#ff5722;font-weight:bold;}
+.gradeE{color:red;font-weight:bold;}
+
+@media(max-width:768px){
+    .form-grid,
+    .dashboard{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📚 Aplikasi Pengelolaan Nilai Mahasiswa</h1>
+
+<div class="card">
+<h2>Input Data Mahasiswa</h2>
+<br>
+
+<div class="form-grid">
+<input type="text" id="nim" placeholder="NIM">
+<input type="text" id="nama" placeholder="Nama Mahasiswa">
+<input type="text" id="prodi" placeholder="Program Studi">
+<input type="number" id="tugas" placeholder="Nilai Tugas">
+<input type="number" id="uts" placeholder="Nilai UTS">
+<input type="number" id="uas" placeholder="Nilai UAS">
+</div>
+
+<br>
+
+<button class="btn-simpan" onclick="tambahData()">
+Simpan Data
+</button>
+</div>
+
+<div class="dashboard">
+<div class="box">
+Jumlah Mahasiswa
+<h2 id="jumlahMhs">0</h2>
+</div>
+
+<div class="box">
+Rata-rata Kelas
+<h2 id="rataRata">0</h2>
+</div>
+
+<div class="box">
+Lulus
+<h2 id="jumlahLulus">0</h2>
+</div>
+
+<div class="box">
+Tidak Lulus
+<h2 id="jumlahTidakLulus">0</h2>
+</div>
+</div>
+
+<br>
+
+<div class="card">
+<h2>Pencarian Mahasiswa</h2>
+<br>
+
+<input type="text"
+id="keyword"
+placeholder="Cari berdasarkan NIM atau Nama"
+onkeyup="cariData()">
+</div>
+
+<div class="card">
+
+<button class="btn-ranking" onclick="rankingData()">
+Ranking Mahasiswa
+</button>
+
+<button class="btn-export" onclick="exportCSV()">
+Export CSV
+</button>
+
+<button class="btn-hapus" onclick="hapusSemua()">
+Hapus Semua Data
+</button>
+
+<br><br>
+
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>NIM</th>
+<th>Nama</th>
+<th>Prodi</th>
+<th>Tugas</th>
+<th>UTS</th>
+<th>UAS</th>
+<th>Nilai Akhir</th>
+<th>Grade</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody id="tabelData"></tbody>
+
+</table>
+
+</div>
+</div>
+
+<script>
+
+let mahasiswa =
+JSON.parse(localStorage.getItem("mahasiswa")) || [];
+
+function hitungNilai(tugas, uts, uas){
+    return (0.3*tugas)+(0.3*uts)+(0.4*uas);
+}
+
+function grade(nilai){
+    if(nilai >= 85) return "A";
+    if(nilai >= 75) return "B";
+    if(nilai >= 65) return "C";
+    if(nilai >= 50) return "D";
+    return "E";
+}
+
+function statusKelulusan(g){
+    return (g=="A"||g=="B"||g=="C")
+    ? "Lulus"
+    : "Tidak Lulus";
+}
+
+function tambahData(){
+
+    let nim=document.getElementById("nim").value;
+    let nama=document.getElementById("nama").value;
+    let prodi=document.getElementById("prodi").value;
+    let tugas=parseFloat(document.getElementById("tugas").value);
+    let uts=parseFloat(document.getElementById("uts").value);
+    let uas=parseFloat(document.getElementById("uas").value);
+
+    if(!nim || !nama || !prodi){
+        alert("Lengkapi data terlebih dahulu!");
+        return;
+    }
+
+    let nilaiAkhir =
+    hitungNilai(tugas,uts,uas);
+
+    let g =
+    grade(nilaiAkhir);
+
+    let status =
+    statusKelulusan(g);
+
+    mahasiswa.push({
+        nim,
+        nama,
+        prodi,
+        tugas,
+        uts,
+        uas,
+        nilaiAkhir,
+        grade:g,
+        status
+    });
+
+    simpanLocalStorage();
+    tampilkanData();
+    resetForm();
+}
+
+function tampilkanData(data=mahasiswa){
+
+    let tabel =
+    document.getElementById("tabelData");
+
+    tabel.innerHTML="";
+
+    data.forEach((m,index)=>{
+
+        tabel.innerHTML += `
+        <tr>
+            <td>${index+1}</td>
+            <td>${m.nim}</td>
+            <td>${m.nama}</td>
+            <td>${m.prodi}</td>
+            <td>${m.tugas}</td>
+            <td>${m.uts}</td>
+            <td>${m.uas}</td>
+            <td>${m.nilaiAkhir.toFixed(2)}</td>
+            <td class="grade${m.grade}">
+                ${m.grade}
+            </td>
+            <td>${m.status}</td>
+        </tr>`;
+    });
+
+    updateDashboard();
+}
+
+function updateDashboard(){
+
+    document.getElementById("jumlahMhs")
+    .innerHTML = mahasiswa.length;
+
+    let total=0;
+    let lulus=0;
+
+    mahasiswa.forEach(m=>{
+        total += m.nilaiAkhir;
+
+        if(m.status=="Lulus"){
+            lulus++;
+        }
+    });
+
+    let rata =
+    mahasiswa.length
+    ? total/mahasiswa.length
+    : 0;
+
+    document.getElementById("rataRata")
+    .innerHTML = rata.toFixed(2);
+
+    document.getElementById("jumlahLulus")
+    .innerHTML = lulus;
+
+    document.getElementById("jumlahTidakLulus")
+    .innerHTML = mahasiswa.length-lulus;
+}
+
+function rankingData(){
+
+    mahasiswa.sort(
+        (a,b)=>b.nilaiAkhir-a.nilaiAkhir
+    );
+
+    simpanLocalStorage();
+    tampilkanData();
+}
+
+function cariData(){
+
+    let key =
+    document.getElementById("keyword")
+    .value.toLowerCase();
+
+    let hasil =
+    mahasiswa.filter(m=>
+
+        m.nim.toLowerCase().includes(key) ||
+
+        m.nama.toLowerCase().includes(key)
+
+    );
+
+    tampilkanData(hasil);
+}
+
+function exportCSV(){
+
+    let csv =
+    "NIM,Nama,Prodi,Tugas,UTS,UAS,Nilai Akhir,Grade,Status\n";
+
+    mahasiswa.forEach(m=>{
+
+        csv +=
+        `${m.nim},${m.nama},${m.prodi},${m.tugas},${m.uts},${m.uas},${m.nilaiAkhir.toFixed(2)},${m.grade},${m.status}\n`;
+
+    });
+
+    let blob =
+    new Blob([csv],
+    {type:'text/csv'});
+
+    let url =
+    URL.createObjectURL(blob);
+
+    let a =
+    document.createElement("a");
+
+    a.href=url;
+    a.download="nilai_mahasiswa.csv";
+    a.click();
+}
+
+function hapusSemua(){
+
+    if(confirm("Yakin ingin menghapus semua data?")){
+
+        mahasiswa=[];
+
+        simpanLocalStorage();
+        tampilkanData();
+    }
+}
+
+function simpanLocalStorage(){
+
+    localStorage.setItem(
+        "mahasiswa",
+        JSON.stringify(mahasiswa)
+    );
+}
+
+function resetForm(){
+
+    document.getElementById("nim").value="";
+    document.getElementById("nama").value="";
+    document.getElementById("prodi").value="";
+    document.getElementById("tugas").value="";
+    document.getElementById("uts").value="";
+    document.getElementById("uas").value="";
+}
+
+tampilkanData();
+
+</script>
+
+</body>
+</html>
